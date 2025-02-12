@@ -1,30 +1,19 @@
-from vllm import LLM
-from vllm.sampling_params import SamplingParams
-from transformers import AutoTokenizer
+from threading import Thread
+from inferless import Cls # Add the inferless library
 
+
+InferlessCls = Cls(gpu="T4")  # Init the class. the type of GPU you want to run with (This can be passed from the command argument)
 class InferlessPythonModel:
-  def initialize(self):
-    model_id = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
-    self.llm = LLM(model=model_id,gpu_memory_utilization=0.9,max_model_len=5000,dtype="float16")
-    self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
-  def infer(self, inputs):
-    prompts = inputs["prompt"]
-    temperature = inputs.get("temperature",0.7)
-    top_p = inputs.get("top_p",0.1)
-    repetition_penalty = inputs.get("repetition_penalty",1.18)
-    top_k = int(inputs.get("top_k",40))
-    max_tokens = inputs.get("max_tokens",256)
+    @InferlessCls.load     # Add the annotation
+    def initialize(self):
+        import torch
+        from transformers import pipeline
+        self.generator = pipeline("text-generation", model="EleutherAI/gpt-neo-125M",device=0)
 
-    sampling_params = SamplingParams(temperature=temperature,top_p=top_p,
-                                     repetition_penalty=repetition_penalty,
-                                     top_k=top_k,max_tokens=max_tokens
-                                    )
-    input_text = self.tokenizer.apply_chat_template([{"role": "user", "content": prompts}], tokenize=False)
-    result = self.llm.generate(input_text, sampling_params)
-    result_output = [output.outputs[0].text for output in result]
-
-    return {"generated_text":result_output[0]}
-
-  def finalize(self):
-    self.llm = None
+    @InferlessCls.infer    # Add the annotation
+    def infer(self, inputs):
+        prompt = inputs['message']
+        pipeline_output = self.generator(prompt, do_sample=True, min_length=120)
+        generated_txt = pipeline_output[0]["generated_text"]
+        return {"generated_text": generated_txt }
