@@ -4,8 +4,18 @@ from transformers import AutoTokenizer
 
 class InferlessPythonModel:
   def initialize(self):
+
+    
+    
     model_id = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
-    self.llm = LLM(model=model_id,gpu_memory_utilization=0.9,max_model_len=5000,dtype="float16")
+    allowed_patterns = [
+        "config.json",      # Standard configuration file.
+        "*.safetensors",    # SafeTensors file(s) for model weights.
+        "tokenizer_config.json",
+        "tokenizer.json",
+    ]
+    snapshot_dir = snapshot_download(repo_id=model_id, allow_patterns=allowed_patterns)
+    self.llm = LLM(model=snapshot_dir,gpu_memory_utilization=0.9,max_model_len=5000,dtype="float16")
     self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
   def infer(self, inputs):
