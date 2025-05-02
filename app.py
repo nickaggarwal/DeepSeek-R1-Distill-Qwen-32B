@@ -5,9 +5,6 @@ from huggingface_hub import snapshot_download
 
 class InferlessPythonModel:
   def initialize(self):
-
-    
-    
     model_id = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
     allowed_patterns = [
         "config.json",      # Standard configuration file.
